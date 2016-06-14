@@ -1,60 +1,100 @@
 import pygame, sys, random
+from pygame.locals import *
+
+class Player(pygame.sprite.Sprite):
+    def __init__(self):
+        super(Player, self).__init__()
+        self.image = pygame.image.load('img/ship.png').convert()
+        self.image.set_colorkey((255, 255, 255), RLEACCEL)
+        self.rect = self.image.get_rect(
+            center=(275,500))
+
+    def update(self, pressed_keys):
+        if pressed_keys[K_LEFT]:
+            self.rect.move_ip(-6, 0)
+        if pressed_keys[K_RIGHT]:
+            self.rect.move_ip(6, 0)
+
+        if self.rect.left < 0:
+            self.rect.left = 0
+        elif self.rect.right > 800:
+            self.rect.right = 800
+        if self.rect.top <= 0:
+            self.rect.top = 0
+        elif self.rect.bottom >= 600:
+            self.rect.bottom = 600
+
+
+class Enemy(pygame.sprite.Sprite):
+    def __init__(self):
+        super(Enemy, self).__init__()
+        self.image = pygame.image.load('img/ship.png').convert()
+        self.image.set_colorkey((255, 255, 255), RLEACCEL)
+        self.rect = self.image.get_rect(
+            center=(random.randint(0,550-32),0))
+
+    def update(self):
+        self.rect.move_ip(0, 4)
+        if self.rect.bottom > 500:
+            self.kill()
+            sys.exit()
+
+class Bullet(pygame.sprite.Sprite):
+    def __init__(self):
+        super(Bullet, self).__init__()
+        self.image = pygame.image.load('img/ship.png').convert()
+        self.image.set_colorkey((255, 255, 255), RLEACCEL)
+        self.rect = self.image.get_rect(
+            center=(player.rect.x+16,player.rect.y+16))
+
+    def update(self):
+        self.rect.move_ip(0, -8)
+        if self.rect.right < 0:
+            self.kill()
 
 pygame.init()
-screen = pygame.display.set_mode([550,600])
-left = False
-right = False
-shipx = 250+32
-shipy = 500
-mtck = 0
-eny=0
-bullety=500
-fired=False
-bullets = []
-enemies = []
-back = pygame.image.load("img/back.png")
-ship = pygame.image.load("img/ship.png")
+screen = pygame.display.set_mode((550, 600))
+ADDENEMY = pygame.USEREVENT + 1
+pygame.time.set_timer(ADDENEMY, 550)
+
+player = Player()
+
+background = pygame.Surface(screen.get_size())
+background.fill((0, 0, 0))
+
+enemies = pygame.sprite.Group()
+bullets=pygame.sprite.Group()
+all_sprites = pygame.sprite.Group()
+all_sprites.add(player)
 
 while True:
     pygame.time.delay(20)
-
     for event in pygame.event.get():
-        if event.type == pygame.QUIT:
+        if event.type == KEYDOWN:
+            if event.key == K_ESCAPE:
+                sys.exit()
+            elif event.key == K_SPACE:
+                new_bullet = Bullet()
+                bullets.add(new_bullet)
+                all_sprites.add(new_bullet)
+        elif event.type == QUIT:
             sys.exit()
-        if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_SPACE:
-                bullets.append([shipx,500])
-                fired=True
-    mtck = 0
-    keys=pygame.key.get_pressed()
-    if keys[pygame.K_LEFT]:
-        if mtck == 0:
-            mtck = 10
-            shipx -= 8
-        if shipx < -1:
-            shipx = 0
-    if keys[pygame.K_RIGHT]:
-        if mtck == 0:
-            mtck = 10
-            shipx+= 8
-        if shipx > 550:
-            shipx = 550-32
+        elif event.type == ADDENEMY:
+            new_enemy = Enemy()
+            enemies.add(new_enemy)
+            all_sprites.add(new_enemy)
 
-    if mtck > 0:
-        mtck -= 1
-    screen.blit(back, [0, 0])
-    eny+=1
+    screen.blit(background, (0, 0))
+    pressed_keys = pygame.key.get_pressed()
+    player.update(pressed_keys)
+    enemies.update()
+    bullets.update()
+    for entity in all_sprites:
+        screen.blit(entity.image, entity.rect)
 
-    enemies.append(random.randint(0,550))
-    for enemy in enemies :
-        screen.blit(ship, [enemy, eny])
-
-    if fired == True:
-        bullety-=1
-        for bullet in bullets :
-            bullet[1]-=8
-            screen.blit(ship, [bullet[0], bullet[1]])
-
-    screen.blit(ship, [shipx, shipy])
+    if pygame.sprite.spritecollideany(player, enemies):
+        sys.exit()
+    if pygame.sprite.groupcollide(bullets, enemies, True, True, collided = None):
+        pass
 
     pygame.display.flip()

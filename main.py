@@ -4,6 +4,10 @@ pygame.font.init
 pygame.init()
 screen = pygame.display.set_mode((550, 600))
 health=5
+shots=0
+misses=0
+kills=0
+deaths=0
 ADDENEMY = pygame.USEREVENT + 1
 pygame.time.set_timer(ADDENEMY, 550)
 font = pygame.font.SysFont("monospace", 55)
@@ -26,12 +30,13 @@ class Player(pygame.sprite.Sprite):
             self.rect.move_ip(6, 0)
         if self.rect.left < 0:
             self.rect.left = 0
-        elif self.rect.right > 800:
-            self.rect.right = 800
+        elif self.rect.right > 550:
+            self.rect.right = 550
         if self.rect.top <= 0:
             self.rect.top = 0
         elif self.rect.bottom >= 600:
             self.rect.bottom = 600
+
 class Enemy(pygame.sprite.Sprite):
     def __init__(self):
         super(Enemy, self).__init__()
@@ -40,10 +45,14 @@ class Enemy(pygame.sprite.Sprite):
         self.rect = self.image.get_rect(
             center=(random.randint(0,550-32),0))
     def update(self):
-        self.rect.move_ip(0, 2)
+        global health
+        global deaths
+        self.rect.move_ip(0, 1.75)
         if self.rect.bottom > 500:
             self.kill()
             health-=1
+            deaths+=1
+
 class Bullet(pygame.sprite.Sprite):
     def __init__(self):
         super(Bullet, self).__init__()
@@ -55,6 +64,7 @@ class Bullet(pygame.sprite.Sprite):
         self.rect.move_ip(0, -8)
         if self.rect.right < 0:
             self.kill()
+
 player = Player()
 enemies = pygame.sprite.Group()
 bullets=pygame.sprite.Group()
@@ -68,6 +78,7 @@ while True:
             if event.key == K_ESCAPE:
                 sys.exit()
             elif event.key == K_SPACE:
+                shots+=1
                 new_bullet = Bullet()
                 bullets.add(new_bullet)
                 all_sprites.add(new_bullet)
@@ -78,6 +89,7 @@ while True:
             enemies.add(new_enemy)
             all_sprites.add(new_enemy)
 
+    healthlabel = font.render(str(health), 1, (255,255,255))
     screen.blit(background, (0, 0))
     screen.blit(healthlabel, (500, 10))
     pressed_keys = pygame.key.get_pressed()
@@ -86,11 +98,17 @@ while True:
     bullets.update()
     for entity in all_sprites:
         screen.blit(entity.image, entity.rect)
-    if pygame.sprite.spritecollideany(player, enemies):
-        health-=1
     if pygame.sprite.groupcollide(bullets, enemies, True, True, collided = None):
-        pass
+        kills+=1
     if health==0:
+        kdrlabel = font.render("KDR - "+str(kills)+":"+str(deaths), 1, (255,255,255))
+        hmrlabel = font.render("HMR - "+str(kills)+":"+str(shots-kills), 1, (255,255,255))
+        screen.blit(background, (0,0))
+        screen.blit(font.render("You Failed", 1, (255,255,255)), (50,150))
+        screen.blit(kdrlabel, (50,250))
+        screen.blit(hmrlabel, (50,350))
+        pygame.display.flip()
+        pygame.time.delay(5000)
         sys.exit()
 
     pygame.display.flip()

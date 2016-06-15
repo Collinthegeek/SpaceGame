@@ -1,7 +1,10 @@
 import pygame, sys, random
 from pygame.locals import *
-pygame.font.init
+from fractions import Fraction
+
 pygame.init()
+pygame.mixer.init()
+pygame.font.init
 screen = pygame.display.set_mode((550, 600))
 health=5
 shots=0
@@ -12,8 +15,10 @@ ADDENEMY = pygame.USEREVENT + 1
 pygame.time.set_timer(ADDENEMY, 550)
 font = pygame.font.SysFont("monospace", 55)
 pygame.display.set_caption('Space Game')
-background = pygame.Surface(screen.get_size())
-background.fill((0, 0, 0))
+explosion=pygame.image.load("img/explosion.png")
+explosionsnd = pygame.mixer.Sound('img/explosion.wav')
+laser=pygame.mixer.Sound("img/laser.wav")
+background = pygame.image.load("img/back.png")
 healthlabel = font.render(str(health), 1, (255,255,255))
 
 class Player(pygame.sprite.Sprite):
@@ -50,8 +55,15 @@ class Enemy(pygame.sprite.Sprite):
         self.rect.move_ip(0, 1.75)
         if self.rect.bottom > 500:
             self.kill()
+            explosionsnd.play()
+            for entity in enemies:
+                screen.blit(entity.image, entity.rect)
+            screen.blit(explosion, (player.rect.x-4,player.rect.y))
+            pygame.display.flip()
+            pygame.time.delay(150)
             health-=1
             deaths+=1
+
 
 class Bullet(pygame.sprite.Sprite):
     def __init__(self):
@@ -78,6 +90,7 @@ while True:
             if event.key == K_ESCAPE:
                 sys.exit()
             elif event.key == K_SPACE:
+                laser.play()
                 shots+=1
                 new_bullet = Bullet()
                 bullets.add(new_bullet)
@@ -101,8 +114,10 @@ while True:
     if pygame.sprite.groupcollide(bullets, enemies, True, True, collided = None):
         kills+=1
     if health==0:
-        kdrlabel = font.render("KDR - "+str(kills)+":"+str(deaths), 1, (255,255,255))
-        hmrlabel = font.render("HMR - "+str(kills)+":"+str(shots-kills), 1, (255,255,255))
+        kdr = Fraction(kills, deaths)
+        hmr = Fraction(kills, shots-kills)
+        kdrlabel = font.render("KDR - "+str(kdr.numerator)+":"+str(kdr.denominator), 1, (255,255,255))
+        hmrlabel = font.render("HMR - "+str(hmr.numerator)+":"+str(hmr.denominator), 1, (255,255,255))
         screen.blit(background, (0,0))
         screen.blit(font.render("You Failed", 1, (255,255,255)), (50,150))
         screen.blit(kdrlabel, (50,250))

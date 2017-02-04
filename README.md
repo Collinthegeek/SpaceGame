@@ -1,2 +1,3 @@
 # SpaceGame
-Space invaders
+It's like Space Invaders but shit
+

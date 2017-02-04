@@ -11,8 +11,13 @@ shots=0
 misses=0
 kills=0
 deaths=0
+bshoot=0
+enbx=0
+enby=0
 ADDENEMY = pygame.USEREVENT + 1
 pygame.time.set_timer(ADDENEMY, 550)
+ADDBIGENEMY = pygame.USEREVENT + 2
+pygame.time.set_timer(ADDBIGENEMY, 2550)
 font = pygame.font.SysFont("monospace", 55)
 pygame.display.set_caption('Space Game')
 explosion=pygame.image.load("img/explosion.png")
@@ -52,7 +57,7 @@ class Enemy(pygame.sprite.Sprite):
     def update(self):
         global health
         global deaths
-        self.rect.move_ip(0, 1.75)
+        self.rect.move_ip(0, 2)
         if self.rect.bottom > 500:
             self.kill()
             explosionsnd.play()
@@ -64,22 +69,69 @@ class Enemy(pygame.sprite.Sprite):
             health-=1
             deaths+=1
 
+class BigEnemy(pygame.sprite.Sprite):
+    def __init__(self):
+        super(BigEnemy, self).__init__()
+        self.image = pygame.image.load('img/enemy2.png').convert()
+        self.image.set_colorkey((255, 255, 255), RLEACCEL)
+        self.rect = self.image.get_rect(
+            center=(random.randint(0,550-32),0))
+    def update(self):
+        global health
+        global deaths
+        global enbx
+        global enby
+        self.rect.move_ip(0, 1)
+        if self.rect.bottom > 500:
+            self.kill()
+            explosionsnd.play()
+            for entity in enemies:
+                screen.blit(entity.image, entity.rect)
+            screen.blit(explosion, (player.rect.x-4,player.rect.y))
+            pygame.display.flip()
+            pygame.time.delay(150)
+            health-=1
+            deaths+=1
+        bshoot = random.randint(0,50)
+        if bshoot == 1:
+            enbx = self.rect.x
+            enby = self.rect.y
+            laser.play()
+            new_enbullet = EnBullet()
+            enbullets.add(new_enbullet)
+            all_sprites.add(new_enbullet)
+
 
 class Bullet(pygame.sprite.Sprite):
     def __init__(self):
         super(Bullet, self).__init__()
         self.image = pygame.image.load('img/bullet.png').convert()
         self.image.set_colorkey((255, 255, 255), RLEACCEL)
-        self.rect = self.image.get_rect(
-            center=(player.rect.x+8,player.rect.y+8))
+        self.rect = self.image.get_rect(center=(player.rect.x+8,player.rect.y+8))
     def update(self):
         self.rect.move_ip(0, -8)
         if self.rect.right < 0:
             self.kill()
 
+class EnBullet(pygame.sprite.Sprite):
+    def __init__(self):
+        super(EnBullet, self).__init__()
+        self.image = pygame.image.load('img/bullet.png').convert()
+        self.image.set_colorkey((255, 255, 255), RLEACCEL)
+        print enbx
+        print enby
+        self.rect = self.image.get_rect(center=(enbx+42,enby+128))
+    def update(self):
+        self.rect.move_ip(0, 8)
+        if self.rect.right < 0:
+            self.kill()
+
 player = Player()
+players = pygame.sprite.Group()
+players.add(player)
 enemies = pygame.sprite.Group()
 bullets=pygame.sprite.Group()
+enbullets=pygame.sprite.Group()
 all_sprites = pygame.sprite.Group()
 all_sprites.add(player)
 
@@ -101,6 +153,10 @@ while True:
             new_enemy = Enemy()
             enemies.add(new_enemy)
             all_sprites.add(new_enemy)
+        elif event.type == ADDBIGENEMY:
+            new_bigenemy = BigEnemy()
+            enemies.add(new_bigenemy)
+            all_sprites.add(new_bigenemy)
 
     healthlabel = font.render(str(health), 1, (255,255,255))
     screen.blit(background, (0, 0))
@@ -109,13 +165,21 @@ while True:
     player.update(pressed_keys)
     enemies.update()
     bullets.update()
+    enbullets.update()
     for entity in all_sprites:
         screen.blit(entity.image, entity.rect)
     if pygame.sprite.groupcollide(bullets, enemies, True, True, collided = None):
         kills+=1
+    if pygame.sprite.groupcollide(enbullets, players, True, True, collided = None):
+        health=0
     if health==0:
-        kdr = Fraction(kills, deaths)
-        hmr = Fraction(kills, shots-kills)
+        if shots != 0 & deaths != 0:
+            kdr = Fraction(kills, deaths)
+            hmr = Fraction(kills, shots-kills)
+        else:
+            kdr = Fraction(1,1)
+            hmr = Fraction(1,1)
+
         kdrlabel = font.render("KDR - "+str(kdr.numerator)+":"+str(kdr.denominator), 1, (255,255,255))
         hmrlabel = font.render("HMR - "+str(hmr.numerator)+":"+str(hmr.denominator), 1, (255,255,255))
         screen.blit(background, (0,0))

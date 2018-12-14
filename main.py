@@ -19,12 +19,6 @@ bigenemytimer = 0
 chesttimer = 0
 difficulty = 1
 gun=[0]
-ADDENEMY = pygame.USEREVENT + 1
-#pygame.time.set_timer(ADDENEMY, 1000)
-ADDBIGENEMY = pygame.USEREVENT + 2
-#pygame.time.set_timer(ADDBIGENEMY, 4000)
-ADDCHEST = pygame.USEREVENT + 3
-#pygame.time.set_timer(ADDCHEST, 10000)
 font = pygame.font.SysFont("monospace", 55)
 pygame.display.set_caption('Space Game')
 explosion=pygame.image.load("data/explosion.png")
@@ -40,7 +34,7 @@ class Player(pygame.sprite.Sprite):
 		self.type = "player"
 		self.image = pygame.image.load('data/ship.png').convert()
 		self.rect = self.image.get_rect(
-			center=(275,750))
+			center=(275,700))
 	def update(self, pressed_keys):
 		if pressed_keys[K_LEFT]:
 			self.rect.move_ip(-8, 0)
@@ -81,7 +75,7 @@ class Chest(pygame.sprite.Sprite):
 			center=(random.randint(0,550-32),0))
 	def update(self):
 		self.rect.move_ip(0, 2)
-		if self.rect.bottom > 750:
+		if self.rect.bottom > 700:
 			self.kill()
 
 
@@ -90,13 +84,12 @@ class Enemy(pygame.sprite.Sprite):
 		super(Enemy, self).__init__()
 		self.type = "enemy"
 		self.image = pygame.image.load('data/enemy.png').convert()
-		self.rect = self.image.get_rect(
-			center=(random.randint(0,550-32),0))
+		self.rect = self.image.get_rect(center=(random.randint(0,550-32),0))
 	def update(self):
 		global health
 		global deaths
 		self.rect.move_ip(0, 2)
-		if self.rect.bottom > 750:
+		if self.rect.bottom > 700:
 			self.kill()
 			player.kill()
 
@@ -114,7 +107,7 @@ class BigEnemy(pygame.sprite.Sprite):
 		global enbx
 		global enby
 		self.rect.move_ip(0, 1)
-		if self.rect.bottom > 750:
+		if self.rect.bottom > 700:
 			self.kill()
 			player.kill()
 		bshoot = random.randint(0,50)
@@ -128,6 +121,10 @@ class BigEnemy(pygame.sprite.Sprite):
 	def damage(self):
 		if self.health==1:
 			self.image = pygame.image.load('data/enemy2dmg.png').convert()
+			explosionsnd.play()
+			screen.blit(explosion, (self.rect.x+25,self.rect.y+70))
+			pygame.display.flip()		
+			pygame.time.delay(100)	
 			self.health=0
 		else:
 			self.kill()
@@ -139,7 +136,6 @@ class Bullet(pygame.sprite.Sprite):
 		self.type = "bullet"
 		self.trajectory = trajectory
 		self.image = pygame.image.load('data/bullet.png').convert()
-		self.image.set_colorkey((255, 255, 255), RLEACCEL)
 		self.rect = self.image.get_rect(center=(player.rect.x+8,player.rect.y+8))
 	def update(self):
 		self.rect.move_ip(self.trajectory, -9)
@@ -196,18 +192,20 @@ while True:
 	print ""
 	
 	difficulty = 80-kills*(1.5-gun[0])
+	if difficulty<4:
+		difficulty=4
+
 	if enemytimer>difficulty:
 		new_enemy = Enemy()
 		enemies.add(new_enemy)
 		all_sprites.add(new_enemy)
 		enemytimer = 0
-	if difficulty<1:
-		difficulty=1
 	if bigenemytimer>difficulty*15:
 		new_bigenemy = BigEnemy()
 		bigenemies.add(new_bigenemy)
 		all_sprites.add(new_bigenemy)
 		bigenemytimer=0
+
 	if chesttimer==1200:
 		if gun!=[-2, -1, 0, 1, 2]:
 			new_chest = Chest()
@@ -215,7 +213,8 @@ while True:
 			all_sprites.add(new_chest)
 		chesttimer=0
 
-	healthlabel = font.render(str(health), 1, (255,255,255))
+	healthlabel = font.render("Life: " + str(health), 1, (255,255,255))
+	scorelabel = font.render("Score: " + str(kills-deaths), 1, (255,255,255))
 	enemies.update()
 	bigenemies.update()
 	bullets.update()
@@ -226,7 +225,8 @@ while True:
 
 
 	screen.blit(background, (0, 0))
-	screen.blit(healthlabel, (500, 10))
+	screen.blit(healthlabel, (420, 750))
+	screen.blit(scorelabel, (10, 750))
 	for entity in all_sprites:
 		screen.blit(entity.image, entity.rect)
 	
@@ -234,6 +234,7 @@ while True:
 		kills+=1
 	for i in pygame.sprite.groupcollide(bigenemies, bullets, False, True, collided = None):
 		i.damage()
+		kills+=1
 
 	if pygame.sprite.groupcollide(enbullets, players, True, False, collided = None):
 		player.kill()
@@ -247,22 +248,32 @@ while True:
 			gun = [-2, -1, 0, 1, 2]
 
 	if health==0:
-		if shots != 0 & deaths != 0:
-			kdr = Fraction(kills, deaths)
-			hmr = Fraction(kills, shots-kills)
-		else:
-			kdr = Fraction(1,1)
-			hmr = Fraction(1,1)
 
-		kdrlabel = font.render("KDR - "+str(kdr.numerator)+":"+str(kdr.denominator), 1, (255,255,255))
-		hmrlabel = font.render("HMR - "+str(hmr.numerator)+":"+str(hmr.denominator), 1, (255,255,255))		
+		score = kills-deaths
+		scorefile = open("data/hiscore", "r")
+		for hi in scorefile.read().split():
+			hiscore = int(hi)
+		scorefile.close()
+
+		finscorelabel = font.render("Score: "+str(score), 1, (255,255,255))
+		hiscorelabel = font.render("Hi-Score: "+str(hiscore), 1, (255,255,255))
 		screen.blit(background, (0,0))
-		screen.blit(font.render("You Failed", 1, (255,255,255)), (50,150))
-		screen.blit(kdrlabel, (50,250))
-		screen.blit(hmrlabel, (50,350))
-		pygame.display.flip()
-		pygame.time.delay(5000)
-		sys.exit()
+		if score>hiscore:
+			scorefile = open("data/hiscore", "w")
+			screen.blit(font.render("New High Score!", 1, (255,255,255)), (50,150))
+			screen.blit(finscorelabel, (50,250))
+			screen.blit(hiscorelabel, (50,300))
+			pygame.display.flip()
+			scorefile.write(str(score))
+			scorefile.close()
+			pygame.time.delay(5000)
+		else:
+			screen.blit(font.render("Game Over :(", 1, (255,255,255)), (50,150))
+			screen.blit(finscorelabel, (50,250))
+			screen.blit(hiscorelabel, (50,300))
+			pygame.display.flip()
+			pygame.time.delay(5000)
 
+		sys.exit()	
 	pygame.display.flip()
 

@@ -15,18 +15,18 @@ bshoot=0
 enbx=0
 enby=0
 gun=[0]
-enemytimer=900
 ADDENEMY = pygame.USEREVENT + 1
-pygame.time.set_timer(ADDENEMY, enemytimer)
+pygame.time.set_timer(ADDENEMY, 1000)
 ADDBIGENEMY = pygame.USEREVENT + 2
-pygame.time.set_timer(ADDBIGENEMY, 2550)
+pygame.time.set_timer(ADDBIGENEMY, 4000)
 ADDCHEST = pygame.USEREVENT + 3
-pygame.time.set_timer(ADDCHEST, 5100)
+pygame.time.set_timer(ADDCHEST, 10000)
 font = pygame.font.SysFont("monospace", 55)
 pygame.display.set_caption('Space Game')
 explosion=pygame.image.load("img/explosion.png")
 explosionsnd = pygame.mixer.Sound('img/explosion.wav')
 laser=pygame.mixer.Sound("img/laser.wav")
+bell = pygame.mixer.Sound("img/bell.wav")
 background = pygame.image.load("img/back.png")
 healthlabel = font.render(str(health), 1, (255,255,255))
 
@@ -206,12 +206,13 @@ while True:
 	if pygame.sprite.groupcollide(enbullets, players, True, False, collided = None):
 		player.kill()
 	if pygame.sprite.groupcollide(bullets, chests, True, True, collided = None):
+		bell.play()
 		if gun==[0]:
 			gun = [-2, 0, 2]		
 		elif gun==[-2, 0, 2]:
-			gun = [-3, -1, 0, 1, 3]
-		elif gun==[-3, -1, 0, 1, 3]:
-			gun = [-4, -2, -1, 0, 1, 2, 4]
+			gun = [-2, -1, 0, 1, 2]
+		elif gun==[-2, -1, 0, 1, 2]:
+			gun = [-3, -2, -1, 0, 1, 2, 3]
 	if health==0:
 		if shots != 0 & deaths != 0:
 			kdr = Fraction(kills, deaths)

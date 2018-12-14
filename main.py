@@ -14,28 +14,31 @@ deaths=0
 bshoot=0
 enbx=0
 enby=0
+enemytimer = 0 
+bigenemytimer = 0
+chesttimer = 0
+difficulty = 1
 gun=[0]
 ADDENEMY = pygame.USEREVENT + 1
-pygame.time.set_timer(ADDENEMY, 1000)
+#pygame.time.set_timer(ADDENEMY, 1000)
 ADDBIGENEMY = pygame.USEREVENT + 2
-pygame.time.set_timer(ADDBIGENEMY, 4000)
+#pygame.time.set_timer(ADDBIGENEMY, 4000)
 ADDCHEST = pygame.USEREVENT + 3
-pygame.time.set_timer(ADDCHEST, 10000)
+#pygame.time.set_timer(ADDCHEST, 10000)
 font = pygame.font.SysFont("monospace", 55)
 pygame.display.set_caption('Space Game')
-explosion=pygame.image.load("img/explosion.png")
-explosionsnd = pygame.mixer.Sound('img/explosion.wav')
-laser=pygame.mixer.Sound("img/laser.wav")
-bell = pygame.mixer.Sound("img/bell.wav")
-background = pygame.image.load("img/back.png")
+explosion=pygame.image.load("data/explosion.png")
+explosionsnd = pygame.mixer.Sound('data/explosion.wav')
+laser=pygame.mixer.Sound("data/laser.wav")
+bell = pygame.mixer.Sound("data/bell.wav")
+background = pygame.image.load("data/back.png")
 healthlabel = font.render(str(health), 1, (255,255,255))
 
 class Player(pygame.sprite.Sprite):
 	def __init__(self):
 		super(Player, self).__init__()
 		self.type = "player"
-		self.image = pygame.image.load('img/ship.png').convert()
-		self.image.set_colorkey((255, 255, 255), RLEACCEL)
+		self.image = pygame.image.load('data/ship.png').convert()
 		self.rect = self.image.get_rect(
 			center=(275,750))
 	def update(self, pressed_keys):
@@ -73,8 +76,7 @@ class Chest(pygame.sprite.Sprite):
 	def __init__(self):
 		super(Chest, self).__init__()
 		self.type = "chest"
-		self.image = pygame.image.load('img/chest.png').convert()
-		self.image.set_colorkey((255, 255, 255), RLEACCEL)
+		self.image = pygame.image.load('data/chest.png').convert()
 		self.rect = self.image.get_rect(
 			center=(random.randint(0,550-32),0))
 	def update(self):
@@ -87,8 +89,7 @@ class Enemy(pygame.sprite.Sprite):
 	def __init__(self):
 		super(Enemy, self).__init__()
 		self.type = "enemy"
-		self.image = pygame.image.load('img/enemy.png').convert()
-		self.image.set_colorkey((255, 255, 255), RLEACCEL)
+		self.image = pygame.image.load('data/enemy.png').convert()
 		self.rect = self.image.get_rect(
 			center=(random.randint(0,550-32),0))
 	def update(self):
@@ -103,8 +104,8 @@ class BigEnemy(pygame.sprite.Sprite):
 	def __init__(self):
 		super(BigEnemy, self).__init__()
 		self.type = "enemy"
-		self.image = pygame.image.load('img/enemy2.png').convert()
-		self.image.set_colorkey((255, 255, 255), RLEACCEL)
+		self.health = 1
+		self.image = pygame.image.load('data/enemy2.png').convert()
 		self.rect = self.image.get_rect(
 			center=(random.randint(0,550-32),0))
 	def update(self):
@@ -117,13 +118,19 @@ class BigEnemy(pygame.sprite.Sprite):
 			self.kill()
 			player.kill()
 		bshoot = random.randint(0,50)
-		if bshoot == 1:
+		if bshoot == 1 & self.health == 1:
 			enbx = self.rect.x
 			enby = self.rect.y
 			laser.play()
 			new_enbullet = EnBullet()
 			enbullets.add(new_enbullet)
 			all_sprites.add(new_enbullet)
+	def damage(self):
+		if self.health==1:
+			self.image = pygame.image.load('data/enemy2dmg.png').convert()
+			self.health=0
+		else:
+			self.kill()
 
 
 class Bullet(pygame.sprite.Sprite):
@@ -131,7 +138,7 @@ class Bullet(pygame.sprite.Sprite):
 		super(Bullet, self).__init__()
 		self.type = "bullet"
 		self.trajectory = trajectory
-		self.image = pygame.image.load('img/bullet.png').convert()
+		self.image = pygame.image.load('data/bullet.png').convert()
 		self.image.set_colorkey((255, 255, 255), RLEACCEL)
 		self.rect = self.image.get_rect(center=(player.rect.x+8,player.rect.y+8))
 	def update(self):
@@ -143,8 +150,7 @@ class EnBullet(pygame.sprite.Sprite):
 	def __init__(self):
 		super(EnBullet, self).__init__()
 		self.type = "bullet"
-		self.image = pygame.image.load('img/bullet.png').convert()
-		self.image.set_colorkey((255, 255, 255), RLEACCEL)
+		self.image = pygame.image.load('data/bullet.png').convert()
 		self.rect = self.image.get_rect(center=(enbx+42,enby+128))
 	def update(self):
 		self.rect.move_ip(0, 9)
@@ -155,6 +161,7 @@ player = Player()
 players = pygame.sprite.Group()
 players.add(player)
 enemies = pygame.sprite.Group()
+bigenemies = pygame.sprite.Group()
 chests = pygame.sprite.Group()
 bullets = pygame.sprite.Group()
 enbullets = pygame.sprite.Group()
@@ -169,23 +176,48 @@ while True:
 				sys.exit()
 			elif event.key == K_SPACE:
 				player.shoot()
-			elif event.type == QUIT:
-				sys.exit()
-		elif event.type == ADDENEMY:
-			new_enemy = Enemy()
-			enemies.add(new_enemy)
-			all_sprites.add(new_enemy)
-		elif event.type == ADDBIGENEMY:
-			new_bigenemy = BigEnemy()
-			enemies.add(new_bigenemy)
-			all_sprites.add(new_bigenemy)
-		elif event.type == ADDCHEST:
+			elif event.key == K_o:
+				new_bigenemy = BigEnemy()
+				bigenemies.add(new_bigenemy)
+				all_sprites.add(new_bigenemy)
+			elif event.key == K_p:
+				new_enemy = Enemy()
+				enemies.add(new_enemy)
+				all_sprites.add(new_enemy)
+		elif event.type == QUIT:
+			sys.exit()
+	
+#	enemytimer+=1
+	bigenemytimer+=1
+	chesttimer+=1
+	print "kills: " + str(kills)
+	print "difficulty: " + str(difficulty)
+	print "chest time: " + str(1200-chesttimer)
+	print ""
+	
+	difficulty = 80-kills*(1.5-gun[0])
+	if enemytimer>difficulty:
+		new_enemy = Enemy()
+		enemies.add(new_enemy)
+		all_sprites.add(new_enemy)
+		enemytimer = 0
+	if difficulty<1:
+		difficulty=1
+	if bigenemytimer>difficulty*15:
+		new_bigenemy = BigEnemy()
+		bigenemies.add(new_bigenemy)
+		all_sprites.add(new_bigenemy)
+		bigenemytimer=0
+	if chesttimer==1200:
+		if gun!=[-2, -1, 0, 1, 2]:
 			new_chest = Chest()
 			chests.add(new_chest)
 			all_sprites.add(new_chest)
-	
+		chesttimer=0
+
 	healthlabel = font.render(str(health), 1, (255,255,255))
 	enemies.update()
+	bigenemies.update()
 	bullets.update()
 	enbullets.update()
 	chests.update()
@@ -200,19 +232,20 @@ while True:
 	
 	if pygame.sprite.groupcollide(bullets, enemies, True, True, collided = None):
 		kills+=1
-		#if random.randint(0,1) == 1:
-		#	gun+=1
-	
+	for i in pygame.sprite.groupcollide(bigenemies, bullets, False, True, collided = None):
+		i.damage()
+
 	if pygame.sprite.groupcollide(enbullets, players, True, False, collided = None):
 		player.kill()
 	if pygame.sprite.groupcollide(bullets, chests, True, True, collided = None):
 		bell.play()
 		if gun==[0]:
-			gun = [-2, 0, 2]		
+			gun = [-1, 1]
+		elif gun==[-1, 1]:
+			gun =[-2, 0, 2]
 		elif gun==[-2, 0, 2]:
 			gun = [-2, -1, 0, 1, 2]
-		elif gun==[-2, -1, 0, 1, 2]:
-			gun = [-3, -2, -1, 0, 1, 2, 3]
+
 	if health==0:
 		if shots != 0 & deaths != 0:
 			kdr = Fraction(kills, deaths)

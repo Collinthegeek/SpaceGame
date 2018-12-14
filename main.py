@@ -187,7 +187,7 @@ while True:
 		elif event.type == QUIT:
 			sys.exit()
 	
-#	enemytimer+=1
+	enemytimer+=1
 	bigenemytimer+=1
 	chesttimer+=1
 	print "kills: " + str(kills)

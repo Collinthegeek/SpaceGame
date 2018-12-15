@@ -2,13 +2,12 @@ import pygame, sys, random
 from pygame.locals import *
 from fractions import Fraction
 
+#setup
 pygame.init()
 pygame.mixer.init()
 pygame.font.init
 screen = pygame.display.set_mode((550, 800))
 health=5
-shots=0
-misses=0
 kills=0
 deaths=0
 bshoot=0
@@ -28,13 +27,14 @@ bell = pygame.mixer.Sound("data/bell.wav")
 background = pygame.image.load("data/back.png")
 healthlabel = font.render(str(health), 1, (255,255,255))
 
+#Player
 class Player(pygame.sprite.Sprite):
 	def __init__(self):
 		super(Player, self).__init__()
 		self.type = "player"
+		self.shots = 0
 		self.image = pygame.image.load('data/ship.png').convert()
-		self.rect = self.image.get_rect(
-			center=(275,700))
+		self.rect = self.image.get_rect(center=(275,700))
 	def update(self, pressed_keys):
 		if pressed_keys[K_LEFT]:
 			self.rect.move_ip(-8, 0)
@@ -45,9 +45,10 @@ class Player(pygame.sprite.Sprite):
 		elif self.rect.right > 550:
 			self.rect.right = 550
 	def shoot(self):
+		self.shots+=1
 		laser.play()
 		for i in gun:
-			new_bullet = Bullet(i)
+			new_bullet = Bullet(i, "player")
 			bullets.add(new_bullet)
 			all_sprites.add(new_bullet)
 	def kill(self):
@@ -65,7 +66,7 @@ class Player(pygame.sprite.Sprite):
 		health-=1
 		deaths+=1
 		
-			
+#Powerups
 class Chest(pygame.sprite.Sprite):
 	def __init__(self):
 		super(Chest, self).__init__()
@@ -78,7 +79,7 @@ class Chest(pygame.sprite.Sprite):
 		if self.rect.bottom > 700:
 			self.kill()
 
-
+#Small Enemies
 class Enemy(pygame.sprite.Sprite):
 	def __init__(self):
 		super(Enemy, self).__init__()
@@ -93,6 +94,7 @@ class Enemy(pygame.sprite.Sprite):
 			self.kill()
 			player.kill()
 
+#Big Enemies
 class BigEnemy(pygame.sprite.Sprite):
 	def __init__(self):
 		super(BigEnemy, self).__init__()
@@ -115,7 +117,7 @@ class BigEnemy(pygame.sprite.Sprite):
 			enbx = self.rect.x
 			enby = self.rect.y
 			laser.play()
-			new_enbullet = EnBullet()
+			new_enbullet = Bullet(0, "bigenemy")
 			enbullets.add(new_enbullet)
 			all_sprites.add(new_enbullet)
 	def damage(self):
@@ -129,30 +131,26 @@ class BigEnemy(pygame.sprite.Sprite):
 		else:
 			self.kill()
 
-
+#Bullets
 class Bullet(pygame.sprite.Sprite):
-	def __init__(self, trajectory):
+	def __init__(self, trajectory, source):
 		super(Bullet, self).__init__()
+		if source == "player":
+			self.direction = -9
+			self.center = player.rect.x+8,player.rect.y+8
+		else:
+			self.direction = 9
+			self.center = enbx+42,enby+128
 		self.type = "bullet"
 		self.trajectory = trajectory
 		self.image = pygame.image.load('data/bullet.png').convert()
-		self.rect = self.image.get_rect(center=(player.rect.x+8,player.rect.y+8))
+		self.rect = self.image.get_rect(center=self.center)
 	def update(self):
-		self.rect.move_ip(self.trajectory, -9)
+		self.rect.move_ip(self.trajectory, self.direction)
 		if self.rect.right < 0:
 			self.kill()
 
-class EnBullet(pygame.sprite.Sprite):
-	def __init__(self):
-		super(EnBullet, self).__init__()
-		self.type = "bullet"
-		self.image = pygame.image.load('data/bullet.png').convert()
-		self.rect = self.image.get_rect(center=(enbx+42,enby+128))
-	def update(self):
-		self.rect.move_ip(0, 9)
-		if self.rect.right < 0:
-			self.kill()
-
+#Sprite groups for collision
 player = Player()
 players = pygame.sprite.Group()
 players.add(player)
@@ -164,8 +162,11 @@ enbullets = pygame.sprite.Group()
 all_sprites = pygame.sprite.Group()
 all_sprites.add(player)
 
+#Main loop
 while True:
 	pygame.time.delay(20)
+	
+	#Controls
 	for event in pygame.event.get():
 		if event.type == KEYDOWN:
 			if event.key == K_ESCAPE:
@@ -182,7 +183,8 @@ while True:
 				all_sprites.add(new_enemy)
 		elif event.type == QUIT:
 			sys.exit()
-	
+
+	#Timers
 	enemytimer+=1
 	bigenemytimer+=1
 	chesttimer+=1
@@ -191,10 +193,12 @@ while True:
 	print "chest time: " + str(1200-chesttimer)
 	print ""
 	
+	#Difficulty
 	difficulty = 80-kills*(1.5-gun[0])
 	if difficulty<4:
 		difficulty=4
 
+	#Enemy spawning
 	if enemytimer>difficulty:
 		new_enemy = Enemy()
 		enemies.add(new_enemy)
@@ -206,6 +210,7 @@ while True:
 		all_sprites.add(new_bigenemy)
 		bigenemytimer=0
 
+	#Powerup spawning
 	if chesttimer==1200:
 		if gun!=[-2, -1, 0, 1, 2]:
 			new_chest = Chest()
@@ -213,29 +218,12 @@ while True:
 			all_sprites.add(new_chest)
 		chesttimer=0
 
-	healthlabel = font.render("Life: " + str(health), 1, (255,255,255))
-	scorelabel = font.render("Score: " + str(kills-deaths), 1, (255,255,255))
-	enemies.update()
-	bigenemies.update()
-	bullets.update()
-	enbullets.update()
-	chests.update()
-	pressed_keys = pygame.key.get_pressed()
-	player.update(pressed_keys)
-
-
-	screen.blit(background, (0, 0))
-	screen.blit(healthlabel, (420, 750))
-	screen.blit(scorelabel, (10, 750))
-	for entity in all_sprites:
-		screen.blit(entity.image, entity.rect)
-	
+	#Collision	
 	if pygame.sprite.groupcollide(bullets, enemies, True, True, collided = None):
 		kills+=1
 	for i in pygame.sprite.groupcollide(bigenemies, bullets, False, True, collided = None):
 		i.damage()
 		kills+=1
-
 	if pygame.sprite.groupcollide(enbullets, players, True, False, collided = None):
 		player.kill()
 	if pygame.sprite.groupcollide(bullets, chests, True, True, collided = None):
@@ -247,9 +235,30 @@ while True:
 		elif gun==[-2, 0, 2]:
 			gun = [-2, -1, 0, 1, 2]
 
-	if health==0:
+	#Update sprites
+	enemies.update()
+	bigenemies.update()
+	bullets.update()
+	enbullets.update()
+	chests.update()
+	pressed_keys = pygame.key.get_pressed()
+	player.update(pressed_keys)
 
-		score = kills-deaths
+	#Scoring
+	if player.shots-kills>0:
+		score = kills-deaths+(kills/(player.shots-kills))
+	else:
+		score = 0
+	healthlabel = font.render("Life: " + str(health), 1, (255,255,255))
+	scorelabel = font.render("Score: " + str(score), 1, (255,255,255))
+	screen.blit(background, (0, 0))
+	screen.blit(healthlabel, (420, 750))
+	screen.blit(scorelabel, (10, 750))
+	for entity in all_sprites:
+		screen.blit(entity.image, entity.rect)
+	
+	#Endgame
+	if health==1:
 		scorefile = open("data/hiscore", "r")
 		for hi in scorefile.read().split():
 			hiscore = int(hi)

@@ -2,7 +2,7 @@ import pygame, sys, random
 from pygame.locals import *
 from fractions import Fraction
 
-#setup
+#Setup
 pygame.init()
 pygame.mixer.init()
 pygame.font.init
